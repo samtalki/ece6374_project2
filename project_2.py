@@ -25,10 +25,6 @@ Pmm = 0.75
 #Parameters that were not stated anywhere in the project.
 omega0 = 2*np.pi*60
 
-
-
-
-
 def measurement_jacobian(x):
     H = jacfwd(h)(jnp.asarray(x))
     return H

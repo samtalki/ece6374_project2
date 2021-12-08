@@ -1,40 +1,34 @@
-import numpy as np
-from jax import jacfwd
 import jax.numpy as jnp
 import project_2 as p2
 import seaborn as sns
 from tqdm import tqdm
 import imp
 imp.reload(p2)
-sns.set(context='paper',style='darkgrid')
+sns.set(context='paper',style='ticks')
 
 
-bg = 4.9 
-Hg = 2.5 #seconds
-Hm = 1.8
-Sm = 1.0
-bm = 5.8
-Sg = 1
-b = 7.5
-g = 0.95
-omega0 = 2*np.pi*60
-#By fiat
+#Initial conditions
+Ig = 0.75 * jnp.exp(jnp.deg2rad(180)*1j)
+Eg = 1.0315 * jnp.exp(jnp.deg2rad(14.2)*1j)
+Im = 0.75 #* np.exp(0*1j)
+Em = 1/(p2.bm*-1j)*(-1*Im) +1
 Pgm = 0.75
 Pmm = 0.75
-Im = 0.75 * np.exp(0*1j)
-Ig = 0.75 * np.exp(np.deg2rad(180)*1j)
-Eg = 1.0315 * np.exp(np.deg2rad(14.2)*1j)
-Em = 1/(bm*-1j)*(-1*Im) +1
-V1 = 1/(b*-1j)*Im + 1
-V2 = 1.0*np.exp(0*1j)
+V1 = 1/(p2.b*-1j)*Im + 1
+V2 = 1.0*jnp.exp(0*1j)
+
+#Parameters that were not stated anywhere in the project.
+omega0 = 2*jnp.pi*60
 
 
 
-cycles = [i for i in range(14)]
-times = [n*(1/60) for n in cycles]
 
 
-measurements  = np.array([[1.000, 0.100, 1.000, 0.000, 0.750, 0.000, -0.750, 0.000,-0.750, 0.000, 0.750, 0.000, 0.000, 0.000],
+
+
+
+
+measurements  = jnp.array([[1.000, 0.100, 1.000, 0.000, 0.750, 0.000, -0.750, 0.000,-0.750, 0.000, 0.750, 0.000, 0.000, 0.000],
                           [1.000, 0.100, 1.000, 0.000, 0.750, 0.000, -0.750, 0.000, -0.750, 0.000, 0.750, 0.000, 0.000, 0.000,],
                           [0.993, 0.030, 0.987, -0.114, 1.079, -0.041, -1.079, 0.041, -1.079, 0.041, 0.141, 0.068, -0.392, -1.092],
                           [0.991, 0.013, 0.983, -0.135, 1.111, -0.060, -1.111, 0.060, -1.111, 0.060, 0.177, 0.068, -0.811, -2.146],
@@ -51,49 +45,30 @@ measurements  = np.array([[1.000, 0.100, 1.000, 0.000, 0.750, 0.000, -0.750, 0.0
                          ])
 
 
-P = 100e6*np.eye(8)
-W = (1/(0.01**2))*np.eye(measurements.shape[1])
+P = 10e6*jnp.eye(8)
+W = (1/(0.01**2))*jnp.eye(measurements.shape[1])
 
 
-def d_vec(x_k,x_k_h,z):
-    h_x = np.asarray(p2.h(x_k))-z
-    g_x_k = p2.g_cons(x_k,x_k_h)
-    d = np.concatenate([h_x,g_x_k])
-    return d
-
-def update_rule(x_k,H,G,W,P,d):
-    x_k_1 = x_k - np.linalg.inv(H.T@W@H + G.T@P@G)@(np.hstack([H.T@W,G.T@P]))@d
-    return x_k_1
-
-
-
-#cg = cos(angle(eg))
-#cm = cos(angle(em))
-#sg = sin(angle(eg))
-#sm = sin(angle(em))
-x_k = np.array([np.real(V1),np.imag(V1),np.cos(np.angle(Eg)),np.sin(np.angle(Eg)),np.angle(Eg),0,np.real(V2),np.imag(V2),np.cos(np.angle(Em)),np.sin(np.angle(Em)),np.angle(Em),0])
+x_k = jnp.array([jnp.real(V1),jnp.imag(V1),jnp.cos(jnp.angle(Eg)),jnp.sin(jnp.angle(Eg)),jnp.angle(Eg),0,jnp.real(V2),jnp.imag(V2),jnp.cos(jnp.angle(Em)),jnp.sin(jnp.angle(Em)),jnp.angle(Em),0])
 print(x_k)
 
 
-print(p2.g_cons(x_k,x_k))
 
-
-np.abs(p2.Em)
 
 
 X = []
 tol = 1e-6
 k = 0
-# z = measurements[0,:]
-
-# H = p2.measurement_jacobian(x_k)
-# G = p2.constraint_jacobian(x_k,x_k)
-# d = d_vec(x_k,x_k,z)
-#x_k = update_rule(x_k,H,G,W,P,d)
-x_k_h = x_k
+x_t_h = x_k
 
 
-g = p2.g_cons(x_k,x_k_h)
+print(p2.g_cons(x_k,x_t_h))
+
+
+jnp.abs(p2.Em)
+
+
+g = p2.g_cons(x_k,x_t_h)
 print(g)
 
 
@@ -101,25 +76,45 @@ x_k
 
 
 
-for z,t in enumerate(measurements):
+
+
+def d_vec(x_k,x_t_h,z):
+    h_x = p2.h(x_k)-z
+    g_x_k = p2.g_cons(x_k,x_t_h)
+    d = jnp.concatenate([h_x,g_x_k])
+    return d
+
+def update_rule(x_k,H,G,W,P,d):
+    left = jnp.linalg.inv(jnp.vstack([H,G]).T @ jnp.block([[W,jnp.zeros((14,8))],[jnp.zeros((8,14)),P]])@jnp.vstack([H,G]))
+    right = (jnp.vstack([H,G]).T@jnp.block([[W,jnp.zeros((14,8))],[jnp.zeros((8,14)),P]]))@d
+    x_k_1 = x_k - left @ right
+    #x_k_1 = x_k - jnp.linalg.inv(H.T@W@H + G.T@P@G)@(jnp.hstack([H.T@W,G.T@P]))@d
+    return x_k_1
+
+
+
+residuals = []
+stds = []
+for t,z in enumerate(measurements):
     print("==============================t= ",t)
     for i in tqdm(range(10)):
-        
-        #print(x_k)
         H = p2.measurement_jacobian(x_k)
-        G = p2.constraint_jacobian(x_k,x_k_h)
-        #print(H,G)
-        d = d_vec(x_k,x_k_h,z)
+        G = p2.constraint_jacobian(x_k,x_t_h)
+        d = d_vec(x_k,x_t_h,z)
         x_k = update_rule(x_k,H,G,W,P,d)
-       
-        #print(d[14:])
     print(x_k)
+    #Save residuals and standard deviations
+    stds.append(std(H,G,W,P))
+    residuals.append(p2.h(x_k)-z)
     X.append(x_k)
-    x_k_h = x_k
+    x_t_h = x_k
+
+
+d
 
 
 import matplotlib.pyplot as plt
-X = np.asarray(X)
+X = jnp.asarray(X)
 names = ['$v_{1,r}$','$v_{1,i}$','$v_{2,r}$','$v_{2,i}$','$i_{1,r}$','$i_{1,i}$','$i_{2,r}$','$i_{2,i}$','$i_{gr}$','$i_{gi}$','$i_{mr}$','$i_{mi}$','$\omega_g$','$\omega_m$']
 for i in range(12):
     name = names[i]
@@ -127,42 +122,120 @@ for i in range(12):
 plt.legend()
 
 
-fig,axes = plt.subplots(nrows=2,ncols=3,figsize=(2.5*3.5,2.5*3.5/1.61828),constrained_layout=True,sharex=True)
+figscale = 2
+fig,axes = plt.subplots(nrows=2,ncols=3,figsize=(figscale*3.5,figscale*3.5/1.61828),constrained_layout=True,sharex=True)
 axes[1,0].set_xlabel("time t (t/60)s")
 axes[1,1].set_xlabel("time t (t/60)s")
+axes[1,2].set_xlabel("time t (t/60)s")
+
 
 #Generator and motor speed
 axes[0,0].plot([p2.omegag(x) for x in X],label="$\omega_g$")
 axes[0,0].plot([p2.omegam(x) for x in X],label="$\omega_m$")
 axes[0,0].legend()
 axes[0,0].set_title("Angular Velocities")
+axes[0,0].set_ylabel("rad/s")
+axes[0,0].grid()
+
 #Deltas
 axes[0,1].plot([p2.deltag(x) for x in X],label="$\delta_g$")
 axes[0,1].plot([p2.deltam(x) for x in X],label="$\delta_m$")
 axes[0,1].legend()
-axes[0,1].set_title("Angles")
+axes[0,1].set_title("Rotor Angles")
+axes[0,1].set_ylabel("Radians")
+axes[0,1].grid()
+
 #Voltages
 axes[0,2].plot([p2.v1r(x) for x in X],label="$V_{1,r}$")
 axes[0,2].plot([p2.v2r(x) for x in X],label="$V_{2,r}$")
 axes[0,2].plot([p2.v1i(x) for x in X],label="$V_{1,i}$")
 axes[0,2].plot([p2.v2i(x) for x in X],label="$V_{2,i}$")
 axes[0,2].legend()
-axes[0,2].set_title("Voltages")
+axes[0,2].set_title("Real/Imag Part of Voltages")
+axes[0,2].set_ylabel("Volts")
+axes[0,2].grid()
 
-#Currents
-axes[1,0].plot([p2.v1r(x) for x in X],label="$V_{1,r}$")
-axes[1,0].plot([p2.v2r(x) for x in X],label="$V_{2,r}$")
-axes[1,0].plot([p2.v1i(x) for x in X],label="$V_{1,i}$")
-axes[1,0].plot([p2.v2i(x) for x in X],label="$V_{2,i}$")
+#Voltage mags
+axes[1,0].plot([jnp.abs(p2.v1r(x) + p2.v1i(x)*1j) for x in X],label=r"$|\tilde{V}_1|$")
+axes[1,0].plot([jnp.abs(p2.v2r(x) + p2.v2i(x)*1j) for x in X],label=r"$|\tilde{V}_{2}|$")
+axes[1,0].set_ylabel("V RMS")
+axes[1,0].set_title("Line Voltage Mags.")
+axes[1,0].set_ylim(0.5,1.1)
 axes[1,0].legend()
-axes[1,0].set_title("Voltages")
+axes[1,0].grid()
+
+#Voltage angles
+axes[1,1].plot([jnp.angle(p2.v1r(x) + p2.v1i(x)*1j) for x in X],label=r"$\angle\tilde{V}_1$")
+axes[1,1].plot([jnp.angle(p2.v2r(x) + p2.v2i(x)*1j)for x in X],label=r"$\angle\tilde{V}_{2}$")
+axes[1,1].set_ylabel("Radians")
+axes[1,1].legend()
+axes[1,1].grid()
+axes[1,1].set_title("Line Voltage Angles")
+
+
+#Voltage angles
+axes[1,2].grid()
+axes[1,2].plot([p2.cg(x) for x in X],label=r'$c_g$')
+axes[1,2].plot([p2.cm(x) for x in X],label=r'$c_m$')
+axes[1,2].plot([p2.sg(x) for x in X],'--',label=r'$s_g$')
+axes[1,2].plot([p2.sm(x) for x in X],'--',label=r'$s_m$')
+axes[1,2].set_title("Trig. Relationships")
+axes[1,2].legend()
+
+
+#save
+plt.savefig("Figures/results.png",dpi=400)
+
+
+import pandas as pd
+import numpy as np
+
+STDS = np.asarray(stds)
+
+df = pd.DataFrame()
+names = ['$v_{1,r}$','$v_{1,i}$','$c_g$','$s_g$','$\delta_g$','$\omega_g$','$v_{2,r}$','$v_{2,i}$','$c_{m}$','$s_m$','$\delta_m$','$\omega_m$']
+stds_list = []
+labels = []
+for j,s_j in enumerate(STDS.T):
+    labels.append([names[j] for i in range(len(s_j))])
+    stds_list.append(s_j)
+
+df['Standard Deviation'] = np.asarray(stds).flatten()
+df['names'] = np.asarray(labels).flatten()
+
+
+fig,ax = plt.subplots(figsize=(2*3.5,2*3.5/1.61828))
+plt.grid()
+sns.boxplot(data=df,x='names',y='Standard Deviation',hue='names')
+plt.legend(frameon=False)
+plt.savefig("Figures/std.png",dpi=400)
 
 
 
-print(X[0])
+from scipy.stats import chi2
+def goodness_of_fit(J,df):
+    return 1 - chi2.cdf(J,df)
 
 
 
+
+
+sns.violinplot(data=df,x='')
+
+
+def std(H,G,W,P):
+    left = jnp.linalg.inv(jnp.vstack([H,G]).T @ jnp.block([[W,jnp.zeros((14,8))],[jnp.zeros((8,14)),P]])@jnp.vstack([H,G]))
+    stds = []
+    for i,s_i in enumerate(left):
+        stds.append(jnp.sqrt(s_i[i]))
+    return stds
+
+
+info_matrix = jnp.linalg.inv(H.T @ W @ H)
+stds = []
+for i,s_i in enumerate(info_matrix):
+    stds.append(jnp.sqrt(s_i[i]))
+stds
 
 
 
