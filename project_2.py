@@ -3,32 +3,40 @@ import pandas as pd
 from jax import jacfwd
 import jax.numpy as jnp
 
+
+#Physical parameters of the system
 bg = 4.9 
 Hg = 2.5 #seconds
-Hm = 1.8
-Sm = 1.0
-bm = 5.8
 Sg = 1
 b = 7.5
 g = 0.95
-omega0 = 2*np.pi*60
-#By fiat
-Pgm = 0.75
-Pmm = 0.75
-Im = 0.75 #* np.exp(0*1j)
+bm = 5.8
+Hm = 1.8
+Sm = 1.0
+
+#Initial conditions
 Ig = 0.75 * np.exp(np.deg2rad(180)*1j)
 Eg = 1.0315 * np.exp(np.deg2rad(14.2)*1j)
+Im = 0.75 #* np.exp(0*1j)
 Em = 1/(bm*-1j)*(-1*Im) +1
+Pgm = 0.75
+Pmm = 0.75
+
+#Parameters that were not stated anywhere in the project.
+omega0 = 2*np.pi*60
+
+
+
 
 
 def measurement_jacobian(x):
     H = jacfwd(h)(jnp.asarray(x))
-    return np.asarray(H)
+    return H
 
 
 def constraint_jacobian(x,x_t_h):
-    G = jacfwd(g_cons)(jnp.asarray(x),jnp.asarray(x_t_h))
-    return np.asarray(G)
+    G = jacfwd(g_cons)(jnp.asarray(x),x_t_h)
+    return G
 
 def h(x):
     h1 = v1r(x) #V1_r
@@ -114,4 +122,4 @@ def dyn_cons_8(x,x_t_h,h=1/60):
 def g_cons(x_t,x_t_h):
     g_functions  = [dyn_cons_1,dyn_cons_2,dyn_cons_3,dyn_cons_4,dyn_cons_5,dyn_cons_6,dyn_cons_7,dyn_cons_8]
     g = [g_i(x_t,x_t_h) for g_i in g_functions]
-    return g 
+    return jnp.asarray(g) 
