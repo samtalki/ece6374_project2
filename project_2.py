@@ -34,6 +34,33 @@ def constraint_jacobian(x,x_t_h):
     G = jacfwd(g_cons)(jnp.asarray(x),x_t_h)
     return G
 
+
+def spoofed_measurement_jacobian(x):
+    H = jacfwd(h_spoof)(jnp.asarray(x))
+    return H
+
+
+
+def h_spoof(x):
+    h1 = jnp.abs(x[0]+x[1])*jnp.cos(x[-1]) #V1_r
+    h2 = jnp.abs(x[0]+x[1])*jnp.sin(x[-1]) #V1_i
+    h3 = v2r(x) #V2_r
+    h4 = v2i(x) #V2_i
+    h5 = b*(jnp.abs(x[0]+x[1])*jnp.sin(x[-1])-v2i(x)) #I1_r
+    h6 = -b*(jnp.abs(x[0]+x[1])*jnp.cos(x[-1])-v2r(x)) #I1_i
+    h7 = b*(v2i(x)-v1i(x)) #I2_r
+    h8 = -b*(v2r(x)-v1r(x)) #I2_i
+    h9 = jnp.abs(bg*(jnp.abs(x[0]+x[1])*jnp.sin(x[-1])-np.abs(Eg)*sg(x)))*jnp.cos(x[-1]) #Ig_r
+    h10 = jnp.abs(-bg*(jnp.abs(x[0]+x[1])*jnp.cos(x[-1])-np.abs(Eg)*cg(x)))*jnp.sin(x[-1]) #Ig_i
+    h11 = bm*(v2i(x) - np.abs(Em)*sm(x)) #Im_r
+    h12 = -bm*(v2r(x) - np.abs(Em)*cm(x)) #Im_i
+    h13 = omegag(x) #omega_g
+    h14 = omegam(x) #omega_m
+    return jnp.asarray([h1,h2,h3,h4,h5,h6,h7,h8,h9,h10,h11,h12,h13,h14])
+
+
+
+
 def h(x):
     h1 = v1r(x) #V1_r
     h2 = v1i(x) #V1_i
