@@ -224,9 +224,9 @@ sns.violinplot(data=df,x='')
 
 
 def std(H,G,W,P):
-    left = jnp.linalg.inv(jnp.vstack([H,G]).T @ jnp.block([[W,jnp.zeros((14,8))],[jnp.zeros((8,14)),P]])@jnp.vstack([H,G]))
+    info_matrix = jnp.linalg.inv(jnp.vstack([H,G]).T @ jnp.block([[W,jnp.zeros((14,8))],[jnp.zeros((8,14)),P]])@jnp.vstack([H,G]))
     stds = []
-    for i,s_i in enumerate(left):
+    for i,s_i in enumerate(info_matrix):
         stds.append(jnp.sqrt(s_i[i]))
     return stds
 
