@@ -4,5 +4,5 @@ Dynamic state estimation using automatic differentiation and recursive least squ
 
 Information:
 
-- project2.py : Model equations, constraints and parameters
+- project_2.py : Model equations, constraints and parameters
 - Project_2.ipynb: Experiments
