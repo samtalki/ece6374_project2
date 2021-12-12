@@ -2,7 +2,7 @@
 
 Dynamic state estimation using automatic differentiation and recursive least squares
 
-Information for grading:
+Information:
 
-project2.py : Model equations, constraints and parameters
-Project_2.ipynb: Experiments
+- project2.py : Model equations, constraints and parameters
+- Project_2.ipynb: Experiments
